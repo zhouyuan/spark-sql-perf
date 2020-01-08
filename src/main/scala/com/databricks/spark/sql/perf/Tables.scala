@@ -17,6 +17,7 @@
 package com.databricks.spark.sql.perf
 
 import java.util.concurrent.LinkedBlockingQueue
+import java.text.SimpleDateFormat
 
 import scala.collection.immutable.Stream
 import scala.sys.process._
@@ -95,7 +96,7 @@ trait DataGenerator extends Serializable {
 
 
 abstract class Tables(sqlContext: SQLContext, scaleFactor: String,
-    useDoubleForDecimal: Boolean = false, useStringForDate: Boolean = false)
+    useDoubleForDecimal: Boolean = false, useLongForDate: Boolean = false)
     extends Serializable {
 
   def dataGenerator: DataGenerator
@@ -117,6 +118,8 @@ abstract class Tables(sqlContext: SQLContext, scaleFactor: String,
      *  converted to `schema`. Otherwise, it just outputs the raw data (as a single STRING column).
      */
     def df(convertToSchema: Boolean, numPartition: Int) = {
+      val date = raw"(\d{4})-(\d{2})-(\d{2})".r
+      val date_converter = new SimpleDateFormat("yyyy-MM-dd")
       val generatedData = dataGenerator.generate(sparkContext, name, numPartition, scaleFactor)
       val rows = generatedData.mapPartitions { iter =>
         iter.map { l =>
@@ -125,6 +128,8 @@ abstract class Tables(sqlContext: SQLContext, scaleFactor: String,
               if (v.equals("")) {
                 // If the string value is an empty string, we turn it to a null
                 null
+              } else if (v.matches(date.toString)){
+                (date_converter.parse(v).getTime()/1000).toString
               } else {
                 v
               }
@@ -159,7 +164,7 @@ abstract class Tables(sqlContext: SQLContext, scaleFactor: String,
       val newFields = fields.map { field =>
         val newDataType = field.dataType match {
           case decimal: DecimalType if useDoubleForDecimal => DoubleType
-          case date: DateType if useStringForDate => StringType
+          case date: DateType if useLongForDate => LongType
           case other => other
         }
         field.copy(dataType = newDataType)

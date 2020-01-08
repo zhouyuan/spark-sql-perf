@@ -68,9 +68,9 @@ class TPCHTables(
     dbgenDir: String,
     scaleFactor: String,
     useDoubleForDecimal: Boolean = false,
-    useStringForDate: Boolean = false,
+    useLongForDate: Boolean = false,
     generatorParams: Seq[String] = Nil)
-    extends Tables(sqlContext, scaleFactor, useDoubleForDecimal, useStringForDate) {
+    extends Tables(sqlContext, scaleFactor, useDoubleForDecimal, useLongForDate) {
   import sqlContext.implicits._
 
   val dataGenerator = new DBGEN(dbgenDir, generatorParams)
